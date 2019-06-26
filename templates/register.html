@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+
+{% block header %}
+
+<h1 style='display:none'>{% block title %}🌶🌈🐏{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="container" id='dailyplanner'>
+    {% for project in dailyplan.projects %}
+    <div class="container" style='position:relative' id={{project}}>
+        <h3 style='float: left' class='project' ondblclick="changeText(this)" title={{project}}>{{dailyplan.projects[project].title}}</h3> 
+        <a onclick="addTask(this)" class="add">+</a> 
+        <a onclick="removeProject(this)" class="add">-</a> 
+        <div class="taskList container">
+            {% for task in dailyplan.projects[project].tasks %}
+            <div class="task container" id={{project}}-{{task}} style='display:inline-block' >
+                <a onclick="removeTask(this)" class="close-thik"></a>
+                <form><input type="checkbox" title={{project}}-{{task}} style='margin-right:10px; margin-top:12px; float: left' onclick="boxChecked(this)" {% if dailyplan.projects[project].tasks[task].done==1 %}checked{% endif %}></form>
+                <h4 style='float: left'>{{task+1}}.</h4><h4 style='float:left;' title={{project}}-{{task}} class='task' ondblclick="changeText(this)"> &nbsp; {{dailyplan.projects[project].tasks[task].description}} </h4> <h4 class='time' title={{project}}-{{task}} ondblclick="changeText(this)"> &nbsp; {{dailyplan.projects[project].tasks[task].strTime}}</h4>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    <div class='container' style='margin-top: 30px'>
+        <h3 style='float: left'>Add project</h3> <a onclick="addProject()" class="add">+</a>
+    </div>
+    
+    <br>
+    <div id='Networking'class='container'>
+            <br>
+        <div id='ReachOut' class='container'>
+            <h3 style='float: left' >Reach out:</h3> <a onclick="addReachOut()" class="add">+</a>
+            <br>
+            <br>
+            <br>
+            
+            <table class='network'>
+                <thead>
+                <tr>
+                <th class='name'>Name</th>
+                <th>Task</th>
+                </tr>
+                </thead>
+                <tbody>
+                    {% for people in dailyplan.reachOut %}
+                        <tr> 
+                        <td><h6 class='reachOutPeople' ondblclick="changeText(this)">{{people}}</h6></td> 
+                        <td class='ReachOut-task' style='padding-right: 30px; position: relative'>
+                            <h6 class='reachOutTask' ondblclick="changeText(this)">{{dailyplan.reachOut[people]}}</h6>
+                            <a onclick="removeReachOut(this)" class="close-thik"></a>
+                        </td>   
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div id='WaitingOn' class='container' >
+                <h3 style='float: left' >Waiting On:</h3> <a onclick="addWaitingOn()" class="add">+</a>
+                <br>
+                <br>
+                <br>
+                <table class='network'>
+                    <thead>
+                        <tr>
+                        <th class='name'>Name</th>
+                        <th>Task</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for people in dailyplan.waitingOn %}
+                            <tr> 
+                            <td ><h6 class="waitingOnPeople" ondblclick="changeText(this)">{{people}}</h6></td> 
+                            
+                            <td class='Waiting-task' style='padding-right: 30px; position: relative'>
+                                    <h6 class='waitingOnTask' ondblclick="changeText(this)">{{dailyplan.waitingOn[people]}}</h6>
+                                <a onclick="removeWaitingOn(this)" class="close-thik"></a>
+                            </td> 
+                            
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+        </div>
+    </div>
+    <br>
+    <div class=container>{{dailyplan.quote}}</div>
+</div>
+
+<form method="get" action="download">
+        <button class="btn btn-outline-dark" type="submit">Download!</button>
+</form>
+
+<form action = "upload" method = "POST"  enctype = "multipart/form-data">
+    <input type = "file" name = "file" />
+    <input type = "submit"/>
+</form>
+
+<menu id="ctxMenu">
+    <menu title="File">
+        <menu title="Save"></menu>
+        <menu title="Save As"></menu>
+        <menu title="Open"></menu>
+    </menu>
+    <menu title="Edit">
+        <menu title="Cut"></menu>
+        <menu title="Copy"></menu>
+        <menu title="Paste"></menu>
+    </menu>
+</menu>
+
+<script>
+    sortable('.taskList', {
+    forcePlaceholderSize: true,
+    });
+    sortable('tbody', {
+    forcePlaceholderSize: true});
+    
+    function changeText(element){
+        var e = element;
+        var d = document.createElement('input');
+        d.id='editingBox'
+        d.type='text'
+        d.style.width='30%'
+        originalValue=e.innerHTML
+        d.value = e.innerHTML
+        d.className=e.className
+        d.style.float='left'
+        d.title=e.title
+        //console.log(e.className)
+        d.value = e.innerHTML.replace('&nbsp;','');
+        
+        e.parentNode.replaceChild(d, e)
+        d.focus()
+        
+        d.addEventListener("keyup", function(event) {
+        // Number 13 is the "Enter" key on the keyboard
+        if (event.keyCode === 13) {
+        // Cancel the default action, if needed
+        event.preventDefault();
+        // Trigger the button element with a click
+        var e = document.createElement('h4');
+        if(d.className=='project'){
+            var e = document.createElement('h3')
+        }
+        if(d.className=='reachOutPeople' |d.className=='waitingOnPeople'|d.className=='waitingOnTask' | d.className=='reachOutTask'){
+            var e = document.createElement('h6')
+        }
+
+        e.innerHTML = '&nbsp;'+d.value;
+        e.style.float='left'
+        e.title=d.title
+        e.className=d.className
+        d.parentNode.replaceChild(e, d)
+        //e.ondblclick=alert(0)
+
+        //Update Text on the server
+        if(d.className=='time'){
+            var formData = new FormData()
+            formData.append('goal', 'changeTime')
+            formData.append('taskId', d.title)
+            formData.append('time', d.value)
+            var request = new XMLHttpRequest();
+            request.open("POST", "");
+            request.send(formData)
+        }
+        else if(d.className=='task'){
+            var formData = new FormData()
+            formData.append('goal', 'updateTask')
+            formData.append('taskId', d.title)
+            formData.append('newText', d.value)
+            var request = new XMLHttpRequest();
+            request.open("POST", "");
+            request.send(formData)
+        }
+        else if(d.className=='project'){
+            var formData = new FormData()
+            formData.append('goal', 'updateProject')
+            formData.append('taskId', d.title)
+            formData.append('newText', d.value)
+            var request = new XMLHttpRequest();
+            request.open("POST", "");
+            request.send(formData)
+        }
+        else if(d.className=='reachOutPeople'){
+            var formData = new FormData()
+            formData.append('goal', 'updateReachOutPeople')
+            formData.append('originalValue',originalValue)
+            formData.append('newText', d.value)
+            var request = new XMLHttpRequest();
+            request.open("POST", "");
+            request.send(formData)
+        }
+        else if(d.className=='waitingOnPeople'){
+            var formData = new FormData()
+            formData.append('goal', 'updateWaitingOnPeople')
+            formData.append('originalValue',originalValue)
+            formData.append('newText', d.value)
+            var request = new XMLHttpRequest();
+            request.open("POST", "");
+            request.send(formData)
+        }
+        else if(d.className=='waitingOnTask'){
+            var formData = new FormData()
+            formData.append('goal', 'updateWaitingOnDescription')
+            formData.append('originalValue',originalValue)
+            formData.append('newText', d.value)
+            var request = new XMLHttpRequest();
+            request.open("POST", "");
+            request.send(formData)
+        }
+        else if(d.className=='reachOutTask'){
+            var formData = new FormData()
+            formData.append('goal', 'updateReachOutDescription')
+            formData.append('originalValue',originalValue)
+            formData.append('newText', d.value)
+            var request = new XMLHttpRequest();
+            request.open("POST", "");
+            request.send(formData)
+        }
+        
+        
+
+        } 
+    });
+
+    }
+
+    function boxChecked(element){
+        var checkbox=element
+        checkedState=checkbox.checked
+
+        var formData = new FormData()
+        formData.append('taskId', checkbox.title)
+        formData.append('goal', 'completion')
+        if (checkedState != true){
+            formData.append('taskDone', 0)
+        }
+        else if (checkedState = true){
+            formData.append('taskDone', 1)
+        }
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+    }
+
+    function removeTask(element){
+        element.parentNode.parentNode.removeChild(element.parentNode)
+        var formData = new FormData()
+        formData.append('taskId', element.parentNode.id)
+        formData.append('goal', 'removeTask')
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+        location.reload()
+    }
+
+    function addTask(element){
+        var formData = new FormData()
+        formData.append('taskId', element.parentNode.id)
+        formData.append('goal', 'addTask')
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+        location.reload()
+    }
+
+    function addProject(){
+        var formData = new FormData()
+        formData.append('goal', 'addProject')
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+        location.reload()
+    }
+
+     function removeProject(element){
+        element.parentNode.parentNode.removeChild(element.parentNode)
+        var formData = new FormData()
+        formData.append('projectId', element.parentNode.id)
+        formData.append('goal', 'removeProject')
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+        location.reload()
+    }
+
+    function addWaitingOn(){
+        var formData = new FormData()
+        formData.append('goal', 'addWaitingOn')
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+        location.reload()
+    }   
+
+    function removeWaitingOn(element){
+        var formData = new FormData()
+        formData.append('personId', element.parentNode.parentNode.firstElementChild.firstElementChild.innerHTML)
+        formData.append('goal', 'removeWaitingOn')
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+        location.reload()
+    }
+
+    function addReachOut(){
+        var formData = new FormData()
+        formData.append('goal', 'addReachOut')
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+        location.reload()
+    }
+
+    function removeReachOut(element){
+        var formData = new FormData()
+        formData.append('personId', element.parentNode.parentNode.firstElementChild.firstElementChild.innerHTML)
+        formData.append('goal', 'removeReachOut')
+        var request = new XMLHttpRequest();
+        request.open("POST", "");
+        request.send(formData)
+        location.reload()
+    }
+
+    
+
+    var notepad = document.getElementById("notepad");
+    notepad.addEventListener("contextmenu",function(event){
+        event.preventDefault();
+        var ctxMenu = document.getElementById("ctxMenu");
+        ctxMenu.style.display = "block";
+        ctxMenu.style.left = (event.pageX - 10)+"px";
+        ctxMenu.style.top = (event.pageY - 10)+"px";
+    },false);
+    notepad.addEventListener("click",function(event){
+        var ctxMenu = document.getElementById("ctxMenu");
+        ctxMenu.style.display = "";
+        ctxMenu.style.left = "";
+        ctxMenu.style.top = "";
+    },false);
+</script>
+
+<style>
+[class*='close-']{
+  color: #777;
+  font: 14px/100% arial, sans-serif;
+  position: absolute;
+  right: 5px;
+  text-decoration: none;
+  text-shadow: 0 1px 0 #fff;
+  top: 5px;
+}
+.close-thik:after {
+  content: '✖'; /* UTF-8 symbol */
+}
+
+.add{
+    right: 5px;
+    content:'+';
+    font-weight: bold
+}
+
+table.network td, table.network th {
+  border: 0px solid #AAAAAA;
+  padding: 4px 4px;
+}
+table.network tbody td {
+  font-size: 12px;
+  
+}
+table.network tbody tr {
+    background: rgb(168, 208, 221,0.5)
+}
+table.network tbody tr:hover {
+    background: rgb(168, 208, 221,0.83)
+}
+table.network thead th {
+  font-size: 13px;
+  font-weight: bold;
+  background: white;
+}
+.name{
+    width: 120px;
+}
+.task{
+    background-color: bisque;
+    position: relative;
+}
+.task:hover { 
+    background-color: rgba(224, 151, 62);
+}
+
+
+</style>
+{% endblock %}
